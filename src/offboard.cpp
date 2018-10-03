@@ -30,7 +30,7 @@ int step_number;
 mavros_msgs::State current_state;
 geometry_msgs::PoseStamped current_position;
 mavros_msgs::HomePosition global_home;
-drone_img_proc::LandTarget feedback;
+std::vector<drone_img_proc::LandTarget> feedbacks;
 
 void state_cb(const mavros_msgs::State::ConstPtr& msg){
     current_state = *msg;
@@ -53,7 +53,7 @@ void home_cb(const mavros_msgs::HomePosition::ConstPtr& msg){
 }
 
 void feedback_cb(const drone_img_proc::LandTarget::ConstPtr& msg){
-    feedback = *msg;
+    feedbacks.push_back(*msg);
 }
 
 int main(int argc, char **argv)
@@ -186,6 +186,13 @@ int main(int argc, char **argv)
         current_position.pose.position.x,
         current_position.pose.position.y,
         current_position.pose.position.z);*/
+
+        if(feedbacks.size() > 0 && ros::Time::now() - feedbacks.back().stamp < ros::Duration(1.0)){
+            drone_img_proc::LandTarget current_feedback = feedbacks.back();
+            feedbacks.pop_back();
+            ROS_INFO("RECEIVED FEEDBACK %d",current_feedback.centerFound);
+        }
+        
         
         if(abs(current_position.pose.position.z - flight_altitude) < 0.3){
             loc_pos.pose.position.z = flight_altitude;
