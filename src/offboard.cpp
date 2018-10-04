@@ -15,7 +15,6 @@
 #include <nav_msgs/Odometry.h>
 #include <tf/tf.h>
 #include <math.h>
-#include <drone_img_proc/LandTarget.h>
 
 
 #define PI 3.14159
@@ -30,7 +29,7 @@ int step_number;
 mavros_msgs::State current_state;
 geometry_msgs::PoseStamped current_position;
 mavros_msgs::HomePosition global_home;
-std::vector<drone_img_proc::LandTarget> feedbacks;
+
 
 void state_cb(const mavros_msgs::State::ConstPtr& msg){
     current_state = *msg;
@@ -50,10 +49,6 @@ void pos_cb(const geometry_msgs::PoseStamped::ConstPtr& msg){
 
 void home_cb(const mavros_msgs::HomePosition::ConstPtr& msg){
     global_home = *msg;
-}
-
-void feedback_cb(const drone_img_proc::LandTarget::ConstPtr& msg){
-    feedbacks.push_back(*msg);
 }
 
 int main(int argc, char **argv)
@@ -77,9 +72,7 @@ int main(int argc, char **argv)
             ("/mavros/cmd/land");
     ros::Subscriber home_pos_sub = nh.subscribe<mavros_msgs::HomePosition>
             ("/mavros/home_position/home",1,home_cb);
-    ros::Subscriber image_feedback_sub = nh.subscribe<drone_img_proc::LandTarget>
-            ("/image_converter/image_feedback",10, feedback_cb);
-
+    
     //the setpoint publishing rate MUST be faster than 2Hz
     ros::Rate rate(20.0);
     ROS_INFO("RECEIVING PARAMETERS");
@@ -112,7 +105,7 @@ int main(int argc, char **argv)
         rate.sleep();
     }
 
-    drone_img_proc::LandTarget nav_target;
+    
     geometry_msgs::PoseStamped pose;
     pose.pose.position.x = 0;
     pose.pose.position.y = 0;
@@ -186,12 +179,6 @@ int main(int argc, char **argv)
         current_position.pose.position.x,
         current_position.pose.position.y,
         current_position.pose.position.z);*/
-
-        if(feedbacks.size() > 0 && ros::Time::now() - feedbacks.back().stamp < ros::Duration(1.0)){
-            drone_img_proc::LandTarget current_feedback = feedbacks.back();
-            feedbacks.pop_back();
-            ROS_INFO("RECEIVED FEEDBACK %d",current_feedback.centerFound);
-        }
         
         
         if(abs(current_position.pose.position.z - flight_altitude) < 0.3){
