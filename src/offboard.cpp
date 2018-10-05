@@ -170,15 +170,15 @@ int main(int argc, char **argv)
         }
 
 
-        /*geometry_msgs::PoseStamped mark_pose;
+        geometry_msgs::PoseStamped mark_pose;
         mark_pose.pose.position.x = 9.0;
         mark_pose.pose.position.y = 12.0;
         mark_pose.pose.position.z = flight_altitude;
-        local_pos_pub.publish(mark_pose);*/
+        local_pos_pub.publish(mark_pose);
         /*ROS_INFO("CURRENT POSITION:%f %f %f",
         current_position.pose.position.x,
         current_position.pose.position.y,
-        current_position.pose.position.z);*/
+        current_position.pose.position.z);
         
         
         if(abs(current_position.pose.position.z - flight_altitude) < 0.3){
@@ -210,7 +210,7 @@ int main(int argc, char **argv)
                     ROS_INFO("LAND COMMAND ACCEPTED");
                     will_land = true;
                 }
-        }
+        }*/
         
 
         ros::spinOnce();
