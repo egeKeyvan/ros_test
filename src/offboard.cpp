@@ -139,6 +139,11 @@ int main(int argc, char **argv)
     bool armed = false;
 
     while(ros::ok() && !armed){
+        if(current_state.mode == "OFFBOARD"){
+            ROS_INFO("ALREADY ON OFFBOARD");
+            armed = true;
+        }
+
         if( current_state.mode != "OFFBOARD" &&
             (ros::Time::now() - last_request > ros::Duration(4.0))){
             if( set_mode_client.call(offb_set_mode) &&
