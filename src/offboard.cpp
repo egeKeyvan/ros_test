@@ -53,6 +53,7 @@ void home_cb(const mavros_msgs::HomePosition::ConstPtr& msg){
 
 int main(int argc, char **argv)
 {
+    uint32_t seq_count = 1;
     step_number = 0;
     int circle_count = 0;
     ros::init(argc, argv, "offb_node");
@@ -109,10 +110,12 @@ int main(int argc, char **argv)
     geometry_msgs::PoseStamped pose;
     pose.pose.position.x = 0;
     pose.pose.position.y = 0;
-    pose.pose.position.z = flight_altitude;
+    pose.pose.position.z = 0;
 
     //send a few setpoints before starting
     for(int i = 200; ros::ok() && i > 0; --i){
+        pose.header.seq = seq_count++;
+        pose.header.stamp = ros::Time::now();
         local_pos_pub.publish(pose);
         ros::spinOnce();
         rate.sleep();
@@ -133,56 +136,88 @@ int main(int argc, char **argv)
     pose.pose.position.x = 0;
     pose.pose.position.y = 0;
     pose.pose.position.z = flight_altitude;
-    
-    while(ros::ok()){
+    bool armed = false;
+
+    while(ros::ok() && !armed){
         if( current_state.mode != "OFFBOARD" &&
             (ros::Time::now() - last_request > ros::Duration(5.0)) && !will_land){
             if( set_mode_client.call(offb_set_mode) &&
                 offb_set_mode.response.mode_sent){
                 ROS_INFO("Offboard enabled");
+                armed = true;
             }
             last_request = ros::Time::now();
-        } else {
-            if( !current_state.armed &&
-                (ros::Time::now() - last_request > ros::Duration(5.0)) && !will_land){
-                if( arming_client.call(arm_cmd) &&
-                    arm_cmd.response.success){
-                    ROS_INFO("Vehicle armed");
-                }
-                last_request = ros::Time::now();
-            }
         }
-        
+        pose.header.stamp = ros::Time::now();
+        pose.header.seq = seq_count++;
+        local_pos_pub.publish(pose); 
+        ros::spinOnce();
+        rate.sleep();
+    }
+
+
+
+    ros::Time req_timer = ros::Time::now();
+    ros::Time flight_time = ros::Time::now();
+    bool first_time = false;
+
+    while(ros::ok()){
         mavros_msgs::CommandTOL land_comm;
         geometry_msgs::PoseStamped loc_pos;
         //ROS_INFO("CURRENT POSITION: %f %f %f"
         //,current_position.pose.position.x
         //,current_position.pose.position.y
         //,current_position.pose.position.z);
-
         if(current_state.armed){
-            for(; ros::ok() && i < 200; ++i){
-                pose.pose.position.x = (RADIUS / 200) * ((double)i);
+                pose.pose.position.x = 0;
+                pose.pose.position.y = 0;
+                pose.pose.position.z = flight_altitude;
+                pose.header.stamp = ros::Time::now();
+                pose.header.seq = seq_count++,
                 local_pos_pub.publish(pose);
+                if(!first_time){
+                    first_time = true;
+                    flight_time = ros::Time::now();
+                }
                 ros::spinOnce();
                 rate.sleep();
-            }
+        }else{
+            pose.pose.position.x = 0;
+            pose.pose.position.y = 0;
+            pose.pose.position.z = flight_altitude;
+            pose.header.stamp = ros::Time::now();
+            pose.header.seq = seq_count++,
+            local_pos_pub.publish(pose);
+            ros::spinOnce();
+            rate.sleep();
         }
 
+        if(first_time && ros::Time::now() - flight_time > ros::Duration(8.0) && !will_land && ros::Time::now() - req_timer > ros::Duration(1.0)){
+            if(land_client.call(land_comm) && land_comm.response.success){
+                ROS_INFO("LAND COMMAND ACCEPTED");
+                will_land = true;
+            }
 
-        geometry_msgs::PoseStamped mark_pose;
+            req_timer = ros::Time::now();
+        }
+        
+
+
+        /*geometry_msgs::PoseStamped mark_pose;
         mark_pose.pose.position.x = 9.0;
         mark_pose.pose.position.y = 12.0;
         mark_pose.pose.position.z = flight_altitude;
-        local_pos_pub.publish(mark_pose);
-        /*ROS_INFO("CURRENT POSITION:%f %f %f",
-        current_position.pose.position.x,
-        current_position.pose.position.y,
-        current_position.pose.position.z);
+        local_pos_pub.publish(mark_pose);*/
+        //ROS_INFO("CURRENT POSITION:%f %f %f",
+        //current_position.pose.position.x,
+        //current_position.pose.position.y,
+        //current_position.pose.position.z);
         
         
-        if(abs(current_position.pose.position.z - flight_altitude) < 0.3){
+        /*if(abs(current_position.pose.position.z - flight_altitude) < 0.3){
             loc_pos.pose.position.z = flight_altitude;
+            loc_pos.header.stamp = ros::Time::now();
+            loc_pos.header.seq = seq_count++;
             step_number = step_number % STEP_COUNT;
             step_number++;
             double current_angle = (PI / STEP_COUNT) * 2 * step_number;
@@ -202,6 +237,8 @@ int main(int argc, char **argv)
 
         }else{
             //ROS_WARN("GAINING ALTITUDE");
+            pose.header.seq = seq_count++;
+            pose.header.stamp = ros::Time::now();
             local_pos_pub.publish(pose);
         }
 
@@ -210,11 +247,9 @@ int main(int argc, char **argv)
                     ROS_INFO("LAND COMMAND ACCEPTED");
                     will_land = true;
                 }
-        }*/
-        
-
+        }
         ros::spinOnce();
-        rate.sleep();
+        rate.sleep();*/
     }
 
     return 0;
