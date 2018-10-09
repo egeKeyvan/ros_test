@@ -179,8 +179,6 @@ int main(int argc, char **argv)
                     first_time = true;
                     flight_time = ros::Time::now();
                 }
-                ros::spinOnce();
-                rate.sleep();
         }else{
             pose.pose.position.x = 0;
             pose.pose.position.y = 0;
@@ -188,8 +186,6 @@ int main(int argc, char **argv)
             pose.header.stamp = ros::Time::now();
             pose.header.seq = seq_count++,
             local_pos_pub.publish(pose);
-            ros::spinOnce();
-            rate.sleep();
         }
 
         if(first_time && ros::Time::now() - flight_time > ros::Duration(8.0) && !will_land && ros::Time::now() - req_timer > ros::Duration(1.0)){
@@ -201,7 +197,8 @@ int main(int argc, char **argv)
             req_timer = ros::Time::now();
         }
         
-
+        ros::spinOnce();
+        rate.sleep();
 
         /*geometry_msgs::PoseStamped mark_pose;
         mark_pose.pose.position.x = 9.0;
