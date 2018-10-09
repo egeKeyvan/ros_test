@@ -135,12 +135,12 @@ int main(int argc, char **argv)
     bool will_land = false;
     pose.pose.position.x = 0;
     pose.pose.position.y = 0;
-    pose.pose.position.z = flight_altitude;
+    pose.pose.position.z = 0;
     bool armed = false;
 
     while(ros::ok() && !armed){
         if( current_state.mode != "OFFBOARD" &&
-            (ros::Time::now() - last_request > ros::Duration(5.0)) && !will_land){
+            (ros::Time::now() - last_request > ros::Duration(4.0))){
             if( set_mode_client.call(offb_set_mode) &&
                 offb_set_mode.response.mode_sent){
                 ROS_INFO("Offboard enabled");
@@ -182,7 +182,7 @@ int main(int argc, char **argv)
         }else{
             pose.pose.position.x = 0;
             pose.pose.position.y = 0;
-            pose.pose.position.z = flight_altitude;
+            pose.pose.position.z = 0;
             pose.header.stamp = ros::Time::now();
             pose.header.seq = seq_count++,
             local_pos_pub.publish(pose);
