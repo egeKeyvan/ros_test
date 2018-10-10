@@ -5,7 +5,7 @@
             "includePath": [
                 "${workspaceFolder}/**",
                 "/opt/ros/kinetic/include",
-                "/home/goksu/catkin_ws/devel/include"
+                "/home/ege/catkin_ws/devel/include"
             ],
             "defines": [],
             "compilerPath": "/usr/bin/gcc",
