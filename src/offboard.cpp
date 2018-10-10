@@ -157,6 +157,7 @@ int main(int argc, char **argv)
         if(current_state.armed){
             ROS_INFO("ARMED. TAKEOFF WILL FOLLOW");
             takeoff = true;
+            takeoff_timer = ros::Time::now();
         }
 
         pose.header.seq = seq_count++;
@@ -175,7 +176,10 @@ int main(int argc, char **argv)
     pose.pose.position.z = flight_altitude;
     bool offboard = false;
     
-    while(ros::ok() && !offboard){
+
+    while(ros::ok() && !offboard 
+    && ros::Time::now() - takeoff_timer > ros::Duration(9.0) 
+    && e_neighbour(current_position.pose.position.z - flight_altitude, 0.40)){
         if(current_state.mode == "OFFBOARD"){
             ROS_INFO("ALREADY ON OFFBOARD MODE");
             offboard = true;
@@ -206,8 +210,45 @@ int main(int argc, char **argv)
         mavros_msgs::CommandTOL land_msg;
         geometry_msgs::PoseStamped loc_pos;
 
-
         if(current_state.armed){
+            for(; ros::ok() && i < 200; ++i){
+                pose.pose.position.x = (RADIUS / 200) * ((double)i);
+                pose.pose.position.y = 0.0;
+                pose.pose.position.z = flight_altitude;
+                pose.header.seq = seq_count++;
+                pose.header.stamp = ros::Time::now();
+                local_pos_pub.publish(pose);
+            }
+
+            if(first_time){
+                first_time = false;
+                flight_timer = ros::Time::now();
+            }
+        }
+
+
+        if(!first_time && !will_land && ros::Time::now() - flight_timer > ros::Duration(20.0) && ros::Time::now() - last_request > ros::Duration(1.0)){
+            land_msg.request.altitude = global_home.geo.altitude;
+            land_msg.request.latitude = global_home.geo.latitude;
+            land_msg.request.longitude = global_home.geo.longitude;
+            land_msg.request.min_pitch = 0.0;
+            land_msg.request.yaw = 0.0;
+            if(land_client.call(land_msg) && land_msg.response.success){
+                ROS_INFO("SUCCESSFULLY ENGAGED LANDING");
+                will_land = true;
+            }
+
+            last_request = ros::Time::now();
+        }else{
+            pose.pose.position.x = RADIUS;
+            pose.pose.position.y = 0;
+            pose.pose.position.z = flight_altitude;
+            pose.header.seq = seq_count++;
+            pose.header.stamp = ros::Time::now();
+            local_pos_pub.publish(pose);
+        }
+
+        /*if(current_state.armed){
             if(first_time){
                 first_time = false;
             }
@@ -231,7 +272,7 @@ int main(int argc, char **argv)
             }
 
             last_request = ros::Time::now();
-        }
+        }*/
 
         //ROS_INFO("CURRENT POSITION: %f %f %f"
         //,current_position.pose.position.x
