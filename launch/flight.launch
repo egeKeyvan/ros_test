@@ -4,6 +4,7 @@
     <!-- Launches Only PX4 SITL. This can be used by external projects -->
 
     <!-- PX4 config arguments -->
+    
     <rosparam command="load" file="$(find ros_test)/config/flight_parameters.yaml" />
     <node name="offboard" pkg="ros_test" type="offboard" args="" respawn="false" required="true" output="screen"/>
 </launch>
